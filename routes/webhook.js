@@ -35,7 +35,7 @@ router.get("/", async (req, res) => {
     })
 
     // Generate invitation link
-    const baseUrl = `${req.protocol}://${req.get('host')}`
+    const baseUrl = `https://paybot-chats-r8m7.vercel.app`//`${req.protocol}://${req.get('host')}`
     const inviteLink = `${baseUrl}/chat/${roomData.id}`
 
     // Return response with link property
