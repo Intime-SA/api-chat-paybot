@@ -9,7 +9,7 @@ const { initSocketServer } = require("./lib/socket-server")
 // Import route handlers
 const roomsRouter = require("./routes/rooms")
 const messagesRouter = require("./routes/message")
-// const webhookRouter = require("./routes/webhook") // Temporarily disabled
+const webhookRouter = require("./routes/webhook")
 
 const app = express()
 const server = http.createServer(app)
@@ -56,7 +56,7 @@ app.get("/health", (req, res) => {
 // API Routes
 app.use("/api/rooms", roomsRouter)
 app.use("/api/messages", messagesRouter)
-// app.use("/api/webhook", webhookRouter) // Temporarily disabled
+app.use("/api/webhook", webhookRouter)
 
 // Socket.IO endpoint for client connections
 app.get("/socket.io/*", (req, res) => {
