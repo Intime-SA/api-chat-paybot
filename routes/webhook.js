@@ -1,6 +1,7 @@
 const express = require("express")
 const { handleCors } = require("../lib/cors")
 const { createRoom } = require("../lib/room-service")
+const { findOrCreateUserByPhone, updateUserWithRoom } = require("../lib/user-service")
 
 const router = express.Router()
 
@@ -24,7 +25,10 @@ router.get("/", async (req, res) => {
     const ipAddress =
       req.headers["x-forwarded-for"] || req.headers["x-real-ip"] || req.connection.remoteAddress || "Unknown"
 
-    // Create the room
+    // Handle user creation/verification first
+    const userData = await findOrCreateUserByPhone(phone)
+
+    // Create the room with userId
     const roomData = await createRoom({
       phone,
       channel,
@@ -32,7 +36,11 @@ router.get("/", async (req, res) => {
       userAgent,
       ipAddress,
       createdFrom: "webhook",
+      userId: userData.id,
     })
+
+    // Update user with room
+    await updateUserWithRoom(userData.id, roomData.id)
 
     // Generate invitation link
     const baseUrl = `https://paybot-chats-r8m7.vercel.app`//`${req.protocol}://${req.get('host')}`
@@ -41,6 +49,7 @@ router.get("/", async (req, res) => {
     // Return response with link property
     res.status(201).json({
       ...roomData,
+      userId: userData.id,
       link: inviteLink
     })
 

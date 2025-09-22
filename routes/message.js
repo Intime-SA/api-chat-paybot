@@ -34,8 +34,8 @@ router.get("/:roomId", async (req, res) => {
         id: msg._id.toString(),
         content: msg.content,
         timestamp: msg.timestamp,
-        userId: msg.userId,
-        username: msg.username || `User-${msg.userId.slice(0, 6)}`,
+        socketId: msg.socketId || msg.userId, // Compatibility with old messages
+        username: msg.username || `User-${(msg.socketId || msg.userId).slice(0, 6)}`,
       }))
 
       res.json(formattedMessages)
