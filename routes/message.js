@@ -22,7 +22,14 @@ router.get("/:roomId", async (req, res) => {
       const { page = 1, limit = 50 } = req.query
       const skip = (Number(page) - 1) * Number(limit)
 
-      const messages = await db
+      // Get room details to obtain phone number
+      const room = await db.collection("rooms").findOne({ _id: new ObjectId(roomId) })
+      if (!room) {
+        return res.status(404).json({ error: "Room not found" })
+      }
+
+      // Get regular chat messages
+      const chatMessages = await db
         .collection("messages")
         .find({ roomId })
         .sort({ timestamp: -1 })
@@ -30,15 +37,49 @@ router.get("/:roomId", async (req, res) => {
         .limit(Number(limit))
         .toArray()
 
-      const formattedMessages = messages.reverse().map((msg) => ({
+      // Get WhatsApp messages for this room's phone
+      const whatsappMessages = await db
+        .collection("wati-messages")
+        .find({ phone: room.phone })
+        .sort({ date: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .toArray()
+
+      // Format chat messages
+      const formattedChatMessages = chatMessages.map((msg) => ({
         id: msg._id.toString(),
         content: msg.content,
         timestamp: msg.timestamp,
-        socketId: msg.socketId || msg.userId, // Compatibility with old messages
+        socketId: msg.socketId || msg.userId,
         username: msg.username || `User-${(msg.socketId || msg.userId).slice(0, 6)}`,
+        type: "chat", // Add type to distinguish message sources
+        source: "chat"
       }))
 
-      res.json(formattedMessages)
+      // Format WhatsApp messages
+      const formattedWhatsappMessages = whatsappMessages.map((msg) => ({
+        id: msg.messageId,
+        content: msg.message,
+        timestamp: new Date(msg.date).getTime(), // Convert ISO string back to timestamp for consistency
+        username: msg.username,
+        type: msg.type_message,
+        source: "whatsapp",
+        phone: msg.phone,
+        conversationId: msg.conversationId,
+        ticketId: msg.ticketId
+      }))
+
+      // Combine and sort all messages chronologically
+      const allMessages = [...formattedChatMessages, ...formattedWhatsappMessages]
+        .sort((a, b) => a.timestamp - b.timestamp) // Sort by timestamp ascending (chronological)
+
+      // Apply pagination to the combined result
+      const startIndex = skip
+      const endIndex = startIndex + Number(limit)
+      const paginatedMessages = allMessages.slice(startIndex, endIndex)
+
+      res.json(paginatedMessages)
     } catch (dbError) {
       console.warn("Database not available:", dbError.message)
       res.json([]) // Return empty array when database is not available

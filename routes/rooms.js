@@ -27,7 +27,9 @@ router.get("/", async (req, res) => {
 
     const roomsWithDetails = await Promise.all(
       rooms.map(async (room) => {
-        const messageCount = await db.collection("messages").countDocuments({ roomId: room._id.toString() })
+        const chatMessageCount = await db.collection("messages").countDocuments({ roomId: room._id.toString() })
+        const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
+        const totalMessageCount = chatMessageCount + whatsappMessageCount
         const { connectedSockets, status } = await getRoomConnections(room._id.toString())
 
         return {
@@ -43,7 +45,7 @@ router.get("/", async (req, res) => {
           createdFrom: room.createdFrom,
           connectedSockets,
           connectedCount: connectedSockets.length,
-          messageCount,
+          messageCount: totalMessageCount,
           metadata: room.metadata,
         }
       }),
@@ -114,7 +116,9 @@ router.get("/:roomId", async (req, res) => {
       return res.status(404).json({ error: "Room not found" })
     }
 
-    const messageCount = await db.collection("messages").countDocuments({ roomId })
+    const chatMessageCount = await db.collection("messages").countDocuments({ roomId })
+    const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
+    const messageCount = chatMessageCount + whatsappMessageCount
 
     res.json({
       id: room._id.toString(),
@@ -153,7 +157,9 @@ router.get("/:roomId", async (req, res) => {
         return res.status(404).json({ error: "Room not found" })
       }
 
-      const messageCount = await db.collection("messages").countDocuments({ roomId })
+      const chatMessageCount = await db.collection("messages").countDocuments({ roomId })
+      const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
+      const messageCount = chatMessageCount + whatsappMessageCount
       const { connectedSockets, status } = await getRoomConnections(roomId)
 
       const roomDetails = {
