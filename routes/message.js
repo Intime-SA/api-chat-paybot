@@ -37,14 +37,18 @@ router.get("/:roomId", async (req, res) => {
         .limit(Number(limit))
         .toArray()
 
-      // Get WhatsApp messages for this room
+        console.log(chatMessages, "chatMessages")
+
+      // Get WhatsApp messages for this room's phone (all messages with this phone number)
       const whatsappMessages = await db
         .collection("wati-messages")
-        .find({ roomId: new ObjectId(roomId) })
+        .find({ phone: room.phone })
         .sort({ date: -1 })
         .skip(skip)
         .limit(Number(limit))
         .toArray()
+
+        console.log(whatsappMessages, "whatsappMessages")
 
       // Format chat messages
       const formattedChatMessages = chatMessages.map((msg) => ({
@@ -56,6 +60,8 @@ router.get("/:roomId", async (req, res) => {
         type: "chat", // Add type to distinguish message sources
         source: "chat"
       }))
+
+      console.log(formattedChatMessages, "formattedChatMessages")
 
       // Format WhatsApp messages
       const formattedWhatsappMessages = whatsappMessages.map((msg) => ({
@@ -74,6 +80,7 @@ router.get("/:roomId", async (req, res) => {
       const allMessages = [...formattedChatMessages, ...formattedWhatsappMessages]
         .sort((a, b) => a.timestamp - b.timestamp) // Sort by timestamp ascending (chronological)
 
+      console.log(allMessages, "allMessages")
       // Apply pagination to the combined result
       const startIndex = skip
       const endIndex = startIndex + Number(limit)
