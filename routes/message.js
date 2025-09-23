@@ -37,10 +37,10 @@ router.get("/:roomId", async (req, res) => {
         .limit(Number(limit))
         .toArray()
 
-      // Get WhatsApp messages for this room's phone
+      // Get WhatsApp messages for this room
       const whatsappMessages = await db
         .collection("wati-messages")
-        .find({ phone: room.phone })
+        .find({ roomId: new ObjectId(roomId) })
         .sort({ date: -1 })
         .skip(skip)
         .limit(Number(limit))

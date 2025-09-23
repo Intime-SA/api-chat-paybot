@@ -28,7 +28,7 @@ router.get("/", async (req, res) => {
     const roomsWithDetails = await Promise.all(
       rooms.map(async (room) => {
         const chatMessageCount = await db.collection("messages").countDocuments({ roomId: room._id.toString() })
-        const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
+        const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ roomId: new ObjectId(room._id) })
         const totalMessageCount = chatMessageCount + whatsappMessageCount
         const { connectedSockets, status } = await getRoomConnections(room._id.toString())
 
@@ -117,7 +117,7 @@ router.get("/:roomId", async (req, res) => {
     }
 
     const chatMessageCount = await db.collection("messages").countDocuments({ roomId })
-    const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
+    const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ roomId: new ObjectId(roomId) })
     const messageCount = chatMessageCount + whatsappMessageCount
 
     res.json({
@@ -158,7 +158,7 @@ router.get("/:roomId", async (req, res) => {
       }
 
       const chatMessageCount = await db.collection("messages").countDocuments({ roomId })
-      const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
+      const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ roomId: new ObjectId(roomId) })
       const messageCount = chatMessageCount + whatsappMessageCount
       const { connectedSockets, status } = await getRoomConnections(roomId)
 

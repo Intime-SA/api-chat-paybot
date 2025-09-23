@@ -3,6 +3,7 @@ const { handleCors } = require("../lib/cors")
 const { createRoom } = require("../lib/room-service")
 const { findOrCreateUserByPhone, updateUserWithRoom } = require("../lib/user-service")
 const { getDatabase } = require("../lib/mongodb")
+const { ObjectId } = require("mongodb")
 
 const router = express.Router()
 
@@ -86,6 +87,12 @@ router.post("/webhook-wati", async (req, res) => {
       timestamp
     } = req.body
 
+    // Save to database
+    const db = await getDatabase()
+
+    // Find room by phone number
+    const room = await db.collection("rooms").findOne({ phone: waId })
+
     // Prepare data for database
     const messageData = {
       username: senderName,
@@ -95,11 +102,10 @@ router.post("/webhook-wati", async (req, res) => {
       messageId: id,
       conversationId: conversationId,
       ticketId: ticketId,
-      date: convertTimestampToArgentinaISO(timestamp)
+      date: convertTimestampToArgentinaISO(timestamp),
+      roomId: room ? new ObjectId(room._id) : null
     }
 
-    // Save to database
-    const db = await getDatabase()
     const collection = db.collection('wati-messages')
     await collection.insertOne(messageData)
 
