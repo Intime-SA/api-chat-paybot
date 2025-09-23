@@ -54,8 +54,8 @@ router.get("/", async (req, res) => {
     await updateUserWithRoom(userData.id, roomData.id)
 
     // Generate invitation link
-    const baseUrl = `https://paybot-chats-r8m7.vercel.app`//`${req.protocol}://${req.get('host')}`
-    const inviteLink = `${baseUrl}/chat/${roomData.id}`
+    const baseUrl = `https://chat.paybot.app`//`${req.protocol}://${req.get('host')}`
+    const inviteLink = `${baseUrl}/chat/${roomData.id}?phone=${phone}`
 
     // Return response with link property
     res.status(201).json({
