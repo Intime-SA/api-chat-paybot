@@ -58,7 +58,8 @@ router.get("/:roomId", async (req, res) => {
         socketId: msg.socketId || msg.userId,
         username: msg.username || `User-${(msg.socketId || msg.userId).slice(0, 6)}`,
         type: "chat", // Add type to distinguish message sources
-        source: "chat"
+        source: "chat",
+        phone: msg.phone
       }))
 
       console.log(formattedChatMessages, "formattedChatMessages")
