@@ -10,6 +10,7 @@ const { initSocketServer } = require("./lib/socket-server")
 const roomsRouter = require("./routes/rooms")
 const messagesRouter = require("./routes/message")
 const webhookRouter = require("./routes/webhook")
+const usersRouter = require("./routes/users")
 
 const app = express()
 const server = http.createServer(app)
@@ -57,6 +58,7 @@ app.get("/health", (req, res) => {
 app.use("/api/rooms", roomsRouter)
 app.use("/api/messages", messagesRouter)
 app.use("/api/webhook", webhookRouter)
+app.use("/api/users", usersRouter)
 
 // Socket.IO endpoint for client connections
 app.get("/socket.io/*", (req, res) => {

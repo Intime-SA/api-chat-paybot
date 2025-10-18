@@ -7,50 +7,78 @@ const { disconnectSocketFromRoom } = require("../lib/socket-server")
 
 const router = express.Router()
 
-// Get all rooms
+// Get all rooms or search by phone
 router.get("/", async (req, res) => {
   if (handleCors(req, res)) return
 
   try {
+    const { page = 1, limit = 20, phone = "" } = req.query
+
+    // If phone parameter is provided, search for room by phone (partial match)
+    if (phone) {
+      const db = await getDatabase()
+
+      try {
+        // Search for room with partial phone number match using regex
+        const room = await db.collection("rooms").findOne({
+          phone: { $regex: phone, $options: "i" }
+        })
+
+        if (!room) {
+          return res.status(404).json({ error: "No room found for the provided phone number" })
+        }
+
+        // Generate the join URL
+        const joinUrl = `${process.env.APP_DOMAIN}/chat/${room._id.toString()}?phone=${room.phone}`
+
+        return res.json({
+          joinRoom: joinUrl
+        })
+      } catch (dbError) {
+        console.warn("Database not available:", dbError.message)
+        return res.status(503).json({ error: "Database not available" })
+      }
+    }
+
+    // If no phone parameter, return all rooms with pagination
     const db = await getDatabase()
 
     try {
-    const { page = 1, limit = 20 } = req.query
-    const skip = (Number(page) - 1) * Number(limit)
+      const skip = (Number(page) - 1) * Number(limit)
 
-    const rooms = await db
-      .collection("rooms")
-      .find({})
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(Number(limit))
-      .toArray()
+      const rooms = await db
+        .collection("rooms")
+        .find({})
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(Number(limit))
+        .toArray()
 
-    const roomsWithDetails = await Promise.all(
-      rooms.map(async (room) => {
-        const chatMessageCount = await db.collection("messages").countDocuments({ roomId: room._id.toString() })
-        const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
-        const totalMessageCount = chatMessageCount + whatsappMessageCount
-        const { connectedSockets, status, connectedCount } = await getRoomConnectionsWithRoles(room._id.toString())
+      const roomsWithDetails = await Promise.all(
+        rooms.map(async (room) => {
+          const chatMessageCount = await db.collection("messages").countDocuments({ roomId: room._id.toString() })
+          const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
+          const totalMessageCount = chatMessageCount + whatsappMessageCount
+          const { connectedSockets, status, connectedCount } = await getRoomConnectionsWithRoles(room._id.toString())
 
-        return {
-          id: room._id.toString(),
-          name: room.name,
-          phone: room.phone,
-          channel: room.channel,
-          source: room.source,
-          status: room.status || status,
-          openedAt: room.openedAt,
-          closedAt: room.closedAt,
-          createdAt: room.createdAt,
-          createdFrom: room.createdFrom,
-          connectedSockets,
-          connectedCount,
-          messageCount: totalMessageCount,
-          metadata: room.metadata,
-        }
-      }),
-    )
+          return {
+            id: room._id.toString(),
+            name: room.name,
+            phone: room.phone,
+            channel: room.channel,
+            source: room.source,
+            status: room.status || status,
+            openedAt: room.openedAt,
+            closedAt: room.closedAt,
+            createdAt: room.createdAt,
+            createdFrom: room.createdFrom,
+            connectedSockets,
+            connectedCount,
+            messageCount: totalMessageCount,
+            metadata: room.metadata,
+          }
+        }),
+      )
 
       res.json(roomsWithDetails)
     } catch (dbError) {
@@ -62,6 +90,8 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Internal server error" })
   }
 })
+
+
 
 // Create new room
 router.post("/", async (req, res) => {

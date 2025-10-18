@@ -19,9 +19,13 @@ API backend para sistema de chat en tiempo real con Socket.IO, MongoDB y Express
 
 ### Rooms
 - `GET /api/rooms` - Listar todas las rooms
+- `GET /api/rooms?phone={number}` - Buscar room por número de teléfono (coincidencia parcial)
 - `POST /api/rooms` - Crear nueva room
 - `GET /api/rooms/:roomId` - Obtener room específica
 - `DELETE /api/rooms/:roomId` - Eliminar room
+
+### Users
+- `GET /api/users` - Listar todos los usuarios
 
 ### Messages
 - `GET /api/messages/:roomId` - Obtener mensajes de una room
