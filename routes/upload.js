@@ -24,20 +24,28 @@ const upload = multer({
   }
 })
 
+// Nombre del bucket
+const BUCKET_NAME = process.env.CLOUDFLARE_BUCKET_NAME || ''
+
+// Limpiar el endpoint S3 (remover el bucket si está incluido)
+let S3_ENDPOINT = process.env.S3_ENDPOINT || ''
+if (S3_ENDPOINT && BUCKET_NAME && S3_ENDPOINT.endsWith(`/${BUCKET_NAME}`)) {
+  S3_ENDPOINT = S3_ENDPOINT.replace(`/${BUCKET_NAME}`, '')
+}
+
 // Configurar cliente S3 para R2
 const s3Client = new S3Client({
   region: 'auto',
-  endpoint: process.env.S3_ENDPOINT,
+  endpoint: S3_ENDPOINT,
   credentials: {
     accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.CLOUDFLARE_SECRET_ACCESS_KEY || ''
-  }
+  },
+  forcePathStyle: true // Necesario para R2
 })
 
-// Nombre del bucket
-const BUCKET_NAME = process.env.CLOUDFLARE_BUCKET_NAME || ''
-// URL base del Worker que sirve las imágenes
-const CDN_URL = process.env.CLOUDFLARE_CDN_URL || ''
+// URL base del Worker que sirve las imágenes (o usar endpoint directo si no está configurado)
+const CDN_URL = process.env.CLOUDFLARE_CDN_URL || `${S3_ENDPOINT}/${BUCKET_NAME}`
 
 // Función auxiliar para subir a R2
 async function uploadToR2(buffer, key, contentType) {
@@ -113,6 +121,38 @@ router.post("/", upload.single('file'), async (req, res) => {
       message: error.message || 'Error desconocido'
     })
   }
+})
+
+// Endpoint para probar la configuración de Cloudflare R2
+router.get("/test-config", (req, res) => {
+  if (handleCors(req, res)) return
+
+  const config = {
+    bucketName: BUCKET_NAME,
+    cdnUrl: CDN_URL,
+    s3Endpoint: S3_ENDPOINT,
+    originalS3Endpoint: process.env.S3_ENDPOINT,
+    hasAccessKey: !!process.env.CLOUDFLARE_ACCESS_KEY_ID,
+    hasSecretKey: !!process.env.CLOUDFLARE_SECRET_ACCESS_KEY,
+    bucketConfigured: !!BUCKET_NAME,
+    endpointConfigured: !!S3_ENDPOINT
+  }
+
+  // Verificar si la configuración es completa
+  const missing = []
+  if (!BUCKET_NAME) missing.push('CLOUDFLARE_BUCKET_NAME')
+  if (!S3_ENDPOINT) missing.push('S3_ENDPOINT')
+  if (!process.env.CLOUDFLARE_ACCESS_KEY_ID) missing.push('CLOUDFLARE_ACCESS_KEY_ID')
+  if (!process.env.CLOUDFLARE_SECRET_ACCESS_KEY) missing.push('CLOUDFLARE_SECRET_ACCESS_KEY')
+
+  res.json({
+    status: missing.length === 0 ? 'configured' : 'missing_variables',
+    config,
+    missing: missing.length > 0 ? missing : null,
+    message: missing.length === 0 ?
+      'Configuración completa para Cloudflare R2' :
+      `Faltan las siguientes variables de entorno: ${missing.join(', ')}`
+  })
 })
 
 module.exports = router
