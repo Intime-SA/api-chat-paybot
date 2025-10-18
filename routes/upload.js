@@ -1,7 +1,7 @@
 const express = require("express")
 const multer = require("multer")
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3")
-const { v4: uuidv4 } = require("uuid")
+const crypto = require("crypto")
 const sharp = require("sharp")
 const { handleCors } = require("../lib/cors")
 
@@ -65,7 +65,7 @@ router.post("/", upload.single('file'), async (req, res) => {
 
     // Generar un nombre único para el archivo
     const fileExt = file.originalname.split('.').pop() || 'jpg'
-    const uniqueFilename = `${uuidv4()}.${fileExt}`
+    const uniqueFilename = `${crypto.randomUUID()}.${fileExt}`
     const webpFilename = uniqueFilename.replace(`.${fileExt}`, '.webp')
 
     // Usar el buffer del archivo subido
