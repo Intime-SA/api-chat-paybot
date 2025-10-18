@@ -32,7 +32,8 @@ router.get("/", async (req, res) => {
         const joinUrl = `${process.env.APP_DOMAIN}/chat/${room._id.toString()}?phone=${room.phone}`
 
         return res.json({
-          joinRoom: joinUrl
+          joinRoom: joinUrl,
+          roomId: room._id.toString()
         })
       } catch (dbError) {
         console.warn("Database not available:", dbError.message)
@@ -67,6 +68,7 @@ router.get("/", async (req, res) => {
             phone: room.phone,
             channel: room.channel,
             source: room.source,
+            username: room.username,
             status: room.status || status,
             openedAt: room.openedAt,
             closedAt: room.closedAt,
@@ -76,6 +78,7 @@ router.get("/", async (req, res) => {
             connectedCount,
             messageCount: totalMessageCount,
             metadata: room.metadata,
+            contactId: room.contactId,
           }
         }),
       )
@@ -157,10 +160,12 @@ router.get("/:roomId", async (req, res) => {
       phone: room.phone,
       channel: room.channel,
       source: room.source,
+      username: room.username,
       createdAt: room.createdAt,
       createdFrom: room.createdFrom,
       messageCount,
       metadata: room.metadata,
+      contactId: room.contactId,
     })
   } catch (error) {
     console.error("Database error:", error)
@@ -199,6 +204,7 @@ router.get("/:roomId", async (req, res) => {
         phone: room.phone,
         channel: room.channel,
         source: room.source,
+        username: room.username,
         status: room.status || status,
         openedAt: room.openedAt,
         closedAt: room.closedAt,
@@ -208,6 +214,7 @@ router.get("/:roomId", async (req, res) => {
         connectedCount,
         messageCount,
         metadata: room.metadata,
+        contactId: room.contactId,
       }
 
       res.json(roomDetails)
@@ -309,6 +316,7 @@ router.get("/connections/status", async (req, res) => {
             phone: room.phone,
             channel: room.channel,
             source: room.source,
+            username: room.username,
             status: room.status || status,
             openedAt: room.openedAt,
             closedAt: room.closedAt,
@@ -319,6 +327,7 @@ router.get("/connections/status", async (req, res) => {
             connectedCount,
             messageCount: totalMessageCount,
             metadata: room.metadata,
+            contactId: room.contactId,
           }
         }),
       )

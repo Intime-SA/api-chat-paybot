@@ -27,6 +27,17 @@ API backend para sistema de chat en tiempo real con Socket.IO, MongoDB y Express
 ### Users
 - `GET /api/users` - Listar todos los usuarios
 
+### Contacts
+- `POST /api/contact` - Crear nuevo contacto y actualizar mensajes/rooms relacionados
+
+### Upload
+- `POST /api/upload` - Subir imágenes a Cloudflare R2 con procesamiento automático
+- `GET /api/upload/test-config` - Probar configuración de Cloudflare R2
+
+### Settings
+- `POST /api/settings` - Actualizar configuración del perfil/empresa
+- `GET /api/settings` - Obtener configuración actual
+
 ### Messages
 - `GET /api/messages/:roomId` - Obtener mensajes de una room
 
@@ -46,6 +57,13 @@ PORT=3000
 NODE_ENV=production
 ALLOWED_ORIGINS=https://yourdomain.com
 API_URL=https://your-app.railway.app
+
+# Cloudflare R2 Configuration (para subida de imágenes)
+CLOUDFLARE_ACCESS_KEY_ID=your_access_key_id
+CLOUDFLARE_SECRET_ACCESS_KEY=your_secret_access_key
+CLOUDFLARE_BUCKET_NAME=your_bucket_name
+S3_ENDPOINT=https://your-account-id.r2.cloudflarestorage.com
+CLOUDFLARE_CDN_URL=https://your-worker-url.com
 \`\`\`
 
 ## Deployment en Railway

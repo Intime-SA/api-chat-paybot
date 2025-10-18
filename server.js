@@ -11,6 +11,9 @@ const roomsRouter = require("./routes/rooms")
 const messagesRouter = require("./routes/message")
 const webhookRouter = require("./routes/webhook")
 const usersRouter = require("./routes/users")
+const contactRouter = require("./routes/contact")
+const uploadRouter = require("./routes/upload")
+const settingsRouter = require("./routes/settings")
 
 const app = express()
 const server = http.createServer(app)
@@ -59,6 +62,9 @@ app.use("/api/rooms", roomsRouter)
 app.use("/api/messages", messagesRouter)
 app.use("/api/webhook", webhookRouter)
 app.use("/api/users", usersRouter)
+app.use("/api/contact", contactRouter)
+app.use("/api/upload", uploadRouter)
+app.use("/api/settings", settingsRouter)
 
 // Socket.IO endpoint for client connections
 app.get("/socket.io/*", (req, res) => {
