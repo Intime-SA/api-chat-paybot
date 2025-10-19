@@ -14,6 +14,7 @@ const usersRouter = require("./routes/users")
 const contactRouter = require("./routes/contact")
 const uploadRouter = require("./routes/upload")
 const settingsRouter = require("./routes/settings")
+const responsesRouter = require("./routes/responses")
 
 const app = express()
 const server = http.createServer(app)
@@ -65,6 +66,7 @@ app.use("/api/users", usersRouter)
 app.use("/api/contact", contactRouter)
 app.use("/api/upload", uploadRouter)
 app.use("/api/settings", settingsRouter)
+app.use("/api/responses", responsesRouter)
 
 // Socket.IO endpoint for client connections
 app.get("/socket.io/*", (req, res) => {

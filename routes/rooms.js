@@ -14,14 +14,14 @@ router.get("/", async (req, res) => {
   try {
     const { page = 1, limit = 20, phone = "" } = req.query
 
-    // If phone parameter is provided, search for room by phone (partial match)
+    // If phone parameter is provided, search for room by phone (exact match)
     if (phone) {
       const db = await getDatabase()
 
       try {
-        // Search for room with partial phone number match using regex
+        // Search for room with exact phone number match
         const room = await db.collection("rooms").findOne({
-          phone: { $regex: phone, $options: "i" }
+          phone: phone
         })
 
         if (!room) {
@@ -93,8 +93,6 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Internal server error" })
   }
 })
-
-
 
 // Create new room
 router.post("/", async (req, res) => {
@@ -269,38 +267,53 @@ router.get("/connections/status", async (req, res) => {
     const db = await getDatabase()
 
     try {
-      const { page = 1, limit = 20 } = req.query
+      const { page = 1, limit = 20, search = "" } = req.query
       const skip = (Number(page) - 1) * Number(limit)
 
-      // Use aggregation to sort by last connection date
-      // For open rooms: use openedAt
-      // For closed rooms: use closedAt if exists, otherwise openedAt
-      const rooms = await db
-        .collection("rooms")
-        .aggregate([
-          {
-            $addFields: {
-              lastConnectionDate: {
-                $cond: {
-                  if: { $eq: ["$status", "open"] },
-                  then: "$openedAt",
-                  else: {
-                    $ifNull: ["$closedAt", "$openedAt"]
-                  }
+      // Build aggregation pipeline
+      const pipeline = []
+
+      // Add search filter if search parameter is provided
+      if (search) {
+        pipeline.push({
+          $match: {
+            $or: [
+              { username: { $regex: search, $options: "i" } },
+              { phone: { $regex: search, $options: "i" } }
+            ]
+          }
+        })
+      }
+
+      // Add the sorting and pagination steps to the pipeline
+      pipeline.push(
+        {
+          $addFields: {
+            lastConnectionDate: {
+              $cond: {
+                if: { $eq: ["$status", "open"] },
+                then: "$openedAt",
+                else: {
+                  $ifNull: ["$closedAt", "$openedAt"]
                 }
               }
             }
-          },
-          {
-            $sort: { lastConnectionDate: -1 }
-          },
-          {
-            $skip: skip
-          },
-          {
-            $limit: Number(limit)
           }
-        ])
+        },
+        {
+          $sort: { lastConnectionDate: -1 }
+        },
+        {
+          $skip: skip
+        },
+        {
+          $limit: Number(limit)
+        }
+      )
+
+      const rooms = await db
+        .collection("rooms")
+        .aggregate(pipeline)
         .toArray()
 
       const roomsWithDetails = await Promise.all(
@@ -332,8 +345,14 @@ router.get("/connections/status", async (req, res) => {
         }),
       )
 
-      // Get total count for pagination info
-      const totalCount = await db.collection("rooms").countDocuments({})
+      // Get total count for pagination info (considering search filter)
+      const countQuery = search ? {
+        $or: [
+          { username: { $regex: search, $options: "i" } },
+          { phone: { $regex: search, $options: "i" } }
+        ]
+      } : {}
+      const totalCount = await db.collection("rooms").countDocuments(countQuery)
       const totalPages = Math.ceil(totalCount / Number(limit))
 
       res.json({
