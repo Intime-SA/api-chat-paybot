@@ -22,6 +22,7 @@ router.post("/", async (req, res) => {
       platformLink,
       description,
       welcomeMessage,
+      phone,
       timestamp
     } = req.body
 
@@ -40,6 +41,7 @@ router.post("/", async (req, res) => {
       platformLink,
       description,
       welcomeMessage,
+      phone,
       timestamp: timestamp || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -106,6 +108,7 @@ router.get("/", async (req, res) => {
       platformLink: settings.platformLink,
       description: settings.description,
       welcomeMessage: settings.welcomeMessage,
+      phone: settings.phone,
       timestamp: settings.timestamp,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt
