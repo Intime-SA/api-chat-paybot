@@ -7,6 +7,32 @@ const { disconnectSocketFromRoom } = require("../lib/socket-server")
 
 const router = express.Router()
 
+// Helper function to get the last message info for a room
+async function getLastMessageInfo(db, roomId, phone) {
+  try {
+    // Get the most recent chat message for this room
+    const lastChatMessage = await db.collection("messages").findOne(
+      { roomId },
+      { sort: { timestamp: -1 }, projection: { timestamp: 1, content: 1, type: 1 } }
+    )
+
+    // Return message info if found
+    if (lastChatMessage && lastChatMessage.timestamp) {
+      return {
+        timestamp: new Date(lastChatMessage.timestamp),
+        content: lastChatMessage.content || "",
+        type: lastChatMessage.type || "text",
+        source: "chat"
+      }
+    } else {
+      return null
+    }
+  } catch (error) {
+    console.warn("Error getting last message info:", error.message)
+    return null
+  }
+}
+
 // Get all rooms or search by phone
 router.get("/", async (req, res) => {
   if (handleCors(req, res)) return
@@ -285,42 +311,62 @@ router.get("/connections/status", async (req, res) => {
         })
       }
 
-      // Add the sorting and pagination steps to the pipeline
-      pipeline.push(
-        {
-          $addFields: {
-            lastConnectionDate: {
-              $cond: {
-                if: { $eq: ["$status", "open"] },
-                then: "$openedAt",
-                else: {
-                  $ifNull: ["$closedAt", "$openedAt"]
-                }
-              }
-            }
+      // First get rooms with basic sorting (by createdAt as fallback)
+      const roomsQuery = search ? {
+        $or: [
+          { username: { $regex: search, $options: "i" } },
+          { phone: { $regex: search, $options: "i" } }
+        ]
+      } : {}
+
+      // Get all matching rooms first
+      const allMatchingRooms = await db.collection("rooms")
+        .find(roomsQuery)
+        .sort({ createdAt: -1 })
+        .toArray()
+
+      // Calculate lastConnectionDate and last message info for each room
+      const roomsWithLastMessageDate = await Promise.all(
+        allMatchingRooms.map(async (room) => {
+          const lastMessageInfo = await getLastMessageInfo(db, room._id.toString(), room.phone)
+
+          // Use last message date if available, otherwise fallback to openedAt or closedAt logic
+          let lastConnectionDate
+          let lastMessage = null
+          let lastMessageType = null
+          let lastMessageSource = null
+
+          if (lastMessageInfo) {
+            lastConnectionDate = lastMessageInfo.timestamp
+            lastMessage = lastMessageInfo.content
+            lastMessageType = lastMessageInfo.type
+            lastMessageSource = lastMessageInfo.source
+          } else {
+            // Fallback to original logic if no messages exist
+            lastConnectionDate = room.status === "open"
+              ? (room.openedAt ? new Date(room.openedAt) : new Date(room.createdAt))
+              : (room.closedAt ? new Date(room.closedAt) : (room.openedAt ? new Date(room.openedAt) : new Date(room.createdAt)))
           }
-        },
-        {
-          $sort: { lastConnectionDate: -1 }
-        },
-        {
-          $skip: skip
-        },
-        {
-          $limit: Number(limit)
-        }
+
+          return {
+            ...room,
+            lastConnectionDate,
+            lastMessage,
+            lastMessageType,
+            lastMessageSource
+          }
+        })
       )
 
-      const rooms = await db
-        .collection("rooms")
-        .aggregate(pipeline)
-        .toArray()
+      // Sort by lastConnectionDate descending
+      roomsWithLastMessageDate.sort((a, b) => b.lastConnectionDate - a.lastConnectionDate)
+
+      // Apply pagination
+      const rooms = roomsWithLastMessageDate.slice(skip, skip + Number(limit))
 
       const roomsWithDetails = await Promise.all(
         rooms.map(async (room) => {
-          const chatMessageCount = await db.collection("messages").countDocuments({ roomId: room._id.toString() })
-          const whatsappMessageCount = await db.collection("wati-messages").countDocuments({ phone: room.phone })
-          const totalMessageCount = chatMessageCount + whatsappMessageCount
+          const messageCount = await db.collection("messages").countDocuments({ roomId: room._id.toString() })
           const { connectedSockets, status, connectedCount } = await getRoomConnectionsWithRoles(room._id.toString())
 
           return {
@@ -335,10 +381,13 @@ router.get("/connections/status", async (req, res) => {
             closedAt: room.closedAt,
             createdAt: room.createdAt,
             createdFrom: room.createdFrom,
-            lastConnectionDate: room.lastConnectionDate,
+            lastConnectionDate: room.lastConnectionDate.toISOString(),
+            lastMessage: room.lastMessage,
+            lastMessageType: room.lastMessageType,
+            lastMessageSource: room.lastMessageSource,
             connectedSockets,
             connectedCount,
-            messageCount: totalMessageCount,
+            messageCount,
             metadata: room.metadata,
             contactId: room.contactId,
           }
