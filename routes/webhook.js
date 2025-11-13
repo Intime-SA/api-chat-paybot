@@ -54,7 +54,7 @@ router.get("/", async (req, res) => {
     await updateUserWithRoom(userData.id, roomData.id)
 
     // Generate invitation link
-    const baseUrl = `https://chat.paybot.app`//`${req.protocol}://${req.get('host')}`
+    const baseUrl = process.env.APP_DOMAIN //`${req.protocol}://${req.get('host')}`
     const inviteLink = `${baseUrl}/chat/${roomData.id}?phone=${phone}`
 
     // Return response with link property
