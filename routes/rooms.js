@@ -297,7 +297,7 @@ router.get("/connections/status", async (req, res) => {
     const db = await getDatabase()
 
     try {
-      const { page = 1, limit = 20, search = "" } = req.query
+      const { page = 1, limit = 20, search = "", tags = "" } = req.query
       const skip = (Number(page) - 1) * Number(limit)
 
       // Build aggregation pipeline
@@ -310,6 +310,11 @@ router.get("/connections/status", async (req, res) => {
           { username: { $regex: search, $options: "i" } },
           { phone: { $regex: search, $options: "i" } },
           { tags: { $regex: search, $options: "i" } }
+        )
+      }
+      if (tags) {
+        filterConditions.push(
+          { tags: { $regex: tags, $options: "i" } }
         )
       }
 
@@ -328,6 +333,11 @@ router.get("/connections/status", async (req, res) => {
           { username: { $regex: search, $options: "i" } },
           { phone: { $regex: search, $options: "i" } },
           { tags: { $regex: search, $options: "i" } }
+        )
+      }
+      if (tags) {
+        roomsQueryConditions.push(
+          { tags: { $regex: tags, $options: "i" } }
         )
       }
 
@@ -418,6 +428,11 @@ router.get("/connections/status", async (req, res) => {
           { username: { $regex: search, $options: "i" } },
           { phone: { $regex: search, $options: "i" } },
           { tags: { $regex: search, $options: "i" } }
+        )
+      }
+      if (tags) {
+        countQueryConditions.push(
+          { tags: { $regex: tags, $options: "i" } }
         )
       }
 
