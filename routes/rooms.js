@@ -303,24 +303,36 @@ router.get("/connections/status", async (req, res) => {
       // Build aggregation pipeline
       const pipeline = []
 
-      // Add search filter if search parameter is provided
+      // Add search and tags filter if parameters are provided
+      const filterConditions = []
       if (search) {
+        filterConditions.push(
+          { username: { $regex: search, $options: "i" } },
+          { phone: { $regex: search, $options: "i" } },
+          { tags: { $regex: search, $options: "i" } }
+        )
+      }
+
+      if (filterConditions.length > 0) {
         pipeline.push({
           $match: {
-            $or: [
-              { username: { $regex: search, $options: "i" } },
-              { phone: { $regex: search, $options: "i" } }
-            ]
+            $or: filterConditions
           }
         })
       }
 
       // First get rooms with basic sorting (by createdAt as fallback)
-      const roomsQuery = search ? {
-        $or: [
+      const roomsQueryConditions = []
+      if (search) {
+        roomsQueryConditions.push(
           { username: { $regex: search, $options: "i" } },
-          { phone: { $regex: search, $options: "i" } }
-        ]
+          { phone: { $regex: search, $options: "i" } },
+          { tags: { $regex: search, $options: "i" } }
+        )
+      }
+
+      const roomsQuery = roomsQueryConditions.length > 0 ? {
+        $or: roomsQueryConditions
       } : {}
 
       // Get all matching rooms first
@@ -399,12 +411,18 @@ router.get("/connections/status", async (req, res) => {
         }),
       )
 
-      // Get total count for pagination info (considering search filter)
-      const countQuery = search ? {
-        $or: [
+      // Get total count for pagination info (considering search and tags filters)
+      const countQueryConditions = []
+      if (search) {
+        countQueryConditions.push(
           { username: { $regex: search, $options: "i" } },
-          { phone: { $regex: search, $options: "i" } }
-        ]
+          { phone: { $regex: search, $options: "i" } },
+          { tags: { $regex: search, $options: "i" } }
+        )
+      }
+
+      const countQuery = countQueryConditions.length > 0 ? {
+        $or: countQueryConditions
       } : {}
       const totalCount = await db.collection("rooms").countDocuments(countQuery)
       const totalPages = Math.ceil(totalCount / Number(limit))
