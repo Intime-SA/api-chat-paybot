@@ -39,6 +39,23 @@ router.get("/", async (req, res) => {
     // Handle user creation/verification first
     const userData = await findOrCreateUserByPhone(phone)
 
+    // Check if room already exists for this phone number
+    const db = await getDatabase()
+    const existingRoom = await db.collection("rooms").findOne({ phone })
+
+    if (existingRoom) {
+      // Room exists, generate invitation link and return existing room data
+      const baseUrl = process.env.APP_DOMAIN //`${req.protocol}://${req.get('host')}`
+      const inviteLink = `${baseUrl}/chat/${existingRoom._id.toString()}?phone=${phone}`
+
+      return res.status(200).json({
+        ...existingRoom,
+        userId: existingRoom.userId || userData.id,
+        link: inviteLink,
+        message: "Room already exists for this phone number"
+      })
+    }
+
     // Create the room with userId
     const roomData = await createRoom({
       phone,
