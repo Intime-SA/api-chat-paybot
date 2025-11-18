@@ -21,7 +21,7 @@ router.get("/", async (req, res) => {
   if (handleCors(req, res)) return
 
   try {
-    const { phone, channel, source } = req.query
+    const { phone, channel, source, tags = "" } = req.query
 
     // Validate required parameters
     if (!phone || !channel || !source) {
@@ -48,6 +48,7 @@ router.get("/", async (req, res) => {
       ipAddress,
       createdFrom: "webhook",
       userId: userData.id,
+      tags,
     })
 
     // Update user with room
