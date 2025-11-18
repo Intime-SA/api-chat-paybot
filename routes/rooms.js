@@ -105,6 +105,7 @@ router.get("/", async (req, res) => {
             messageCount: totalMessageCount,
             metadata: room.metadata,
             contactId: room.contactId,
+            tags: room.tags,
           }
         }),
       )
@@ -145,6 +146,7 @@ router.post("/", async (req, res) => {
       userAgent,
       ipAddress,
       createdFrom: "api",
+      tags,
     })
 
     res.status(201).json(roomData)
@@ -190,6 +192,7 @@ router.get("/:roomId", async (req, res) => {
       messageCount,
       metadata: room.metadata,
       contactId: room.contactId,
+      tags: room.tags,
     })
   } catch (error) {
     console.error("Database error:", error)
@@ -239,6 +242,7 @@ router.get("/:roomId", async (req, res) => {
         messageCount,
         metadata: room.metadata,
         contactId: room.contactId,
+        tags: room.tags,
       }
 
       res.json(roomDetails)
@@ -390,6 +394,7 @@ router.get("/connections/status", async (req, res) => {
             messageCount,
             metadata: room.metadata,
             contactId: room.contactId,
+            tags: room.tags,
           }
         }),
       )

@@ -47,7 +47,7 @@ router.get("/", async (req, res) => {
         notes: contact.notes || "",
         tags: contact.tags || "",
         createdAt: contact.createdAt,
-        updatedAt: contact.updatedAt
+        updatedAt: contact.updatedAt,
       }))
 
       res.json({
@@ -310,6 +310,27 @@ router.put("/:contactId", async (req, res) => {
         const roomsUpdateResult = await db.collection("rooms").updateMany(
           { phone: currentContact.phone },
           { $set: { username: filteredUpdateData.username } }
+        )
+      }
+
+      // If tags changed, update all related references
+      if (filteredUpdateData.tags !== undefined && filteredUpdateData.tags !== currentContact.tags) {
+        // Update rooms with new tags
+        const roomsTagsUpdateResult = await db.collection("rooms").updateMany(
+          { contactId: new ObjectId(contactId) },
+          { $set: { tags: filteredUpdateData.tags } }
+        )
+
+        // Update messages with new tags
+        const messagesTagsUpdateResult = await db.collection("messages").updateMany(
+          { contactId: new ObjectId(contactId) },
+          { $set: { tags: filteredUpdateData.tags } }
+        )
+
+        // Update whatsapp messages with new tags
+        const whatsappMessagesTagsUpdateResult = await db.collection("wati-messages").updateMany(
+          { contactId: new ObjectId(contactId) },
+          { $set: { tags: filteredUpdateData.tags } }
         )
       }
 
