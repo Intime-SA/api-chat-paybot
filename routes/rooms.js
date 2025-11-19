@@ -146,7 +146,7 @@ router.post("/", async (req, res) => {
       userAgent,
       ipAddress,
       createdFrom: "api",
-      tags,
+      tags: "",
     })
 
     res.status(201).json(roomData)
