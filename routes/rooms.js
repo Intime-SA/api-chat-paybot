@@ -43,6 +43,7 @@ router.get("/", async (req, res) => {
     // If phone parameter is provided, search for room by phone (exact match)
     if (phone) {
       const db = await getDatabase()
+      console.log(phone, "phone")
 
       try {
         // Search for room with exact phone number match
