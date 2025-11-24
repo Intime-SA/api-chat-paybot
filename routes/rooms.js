@@ -394,6 +394,16 @@ router.get("/connections/status", async (req, res) => {
       const roomsWithDetails = await Promise.all(
         rooms.map(async (room) => {
           const messageCount = await db.collection("messages").countDocuments({ roomId: room._id.toString() })
+
+          // Count unread messages (read: false or messages without read field)
+          const unreadCount = await db.collection("messages").countDocuments({
+            roomId: room._id.toString(),
+            $or: [
+              { read: false },
+              { read: { $exists: false } } // Include old messages without read field as unread
+            ]
+          })
+
           const { connectedSockets, status, connectedCount } = await getRoomConnectionsWithRoles(room._id.toString())
 
           return {
@@ -415,6 +425,7 @@ router.get("/connections/status", async (req, res) => {
             connectedSockets,
             connectedCount,
             messageCount,
+            unreadCount,
             metadata: room.metadata,
             contactId: room.contactId,
             tags: room.tags,

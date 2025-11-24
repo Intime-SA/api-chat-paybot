@@ -28,6 +28,12 @@ router.get("/:roomId", async (req, res) => {
         return res.status(404).json({ error: "Room not found" })
       }
 
+      // Mark all unread messages in this room as read when admin opens the chat
+      await db.collection("messages").updateMany(
+        { roomId, read: false },
+        { $set: { read: true, readAt: new Date().toISOString() } }
+      )
+
       // Get regular chat messages
       const chatMessages = await db
         .collection("messages")
@@ -97,5 +103,6 @@ router.get("/:roomId", async (req, res) => {
     res.status(500).json({ error: "Internal server error" })
   }
 })
+
 
 module.exports = router
