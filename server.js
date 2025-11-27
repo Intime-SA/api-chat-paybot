@@ -29,22 +29,32 @@ app.use(express.urlencoded({ extended: true }))
 // CORS configuration
 const corsOptions = {
   origin: (origin, callback) => {
-    const isDevelopment = process.env.NODE_ENV === "development"
+    const isDevelopment = process.env.NODE_ENV !== "production"
     const allowedOrigins = isDevelopment
       ? ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"]
       : process.env.ALLOWED_ORIGINS?.split(",") || ["https://yourdomain.com"]
 
+    // Allow requests with no origin (like mobile apps, curl requests, Postman)
     if (!origin) return callback(null, true)
 
-    if (isDevelopment && (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:"))) {
-      return callback(null, true)
+    // In development, allow localhost origins
+    if (isDevelopment) {
+      if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+        return callback(null, true)
+      }
+      // Also allow the specific origins listed
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true)
+      }
     }
 
+    // In production, only allow specific origins
     if (!isDevelopment && allowedOrigins.includes(origin)) {
       return callback(null, true)
     }
 
-    callback(new Error("Not allowed by CORS"))
+    console.log(`CORS blocked origin: ${origin}, isDevelopment: ${isDevelopment}`)
+    callback(new Error(`Not allowed by CORS. Origin: ${origin}`))
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -84,7 +94,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal server error" })
 })
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3002
 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`)
